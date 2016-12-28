@@ -20,5 +20,6 @@ def buildQueue(arr):
 if __name__ == "__main__":
   kids = ["Alice", "Bob", "Cindy", "Fred", "Gene", "Hope", "Kim",
       "Lance", "Mike", "Doug", "Irene", "Nancy", "Ed", "Jack", "Ollie"]
-  luckiest_kid = Josephus(buildQueue(kids), 5)
+  q = buildQueue(kids)
+  luckiest_kid = Josephus(q, 5)  
   print("最终的幸运者是: {}".format(luckiest_kid))

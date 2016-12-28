@@ -1,66 +1,163 @@
 """树结构
 """
-
 class TreeNode(object):
-  def __init__(self, data=None, tag=None):
+  """一般树的节点"""
+  
+  def __init__(self, value=None, tag=None):
     self.tag = tag
-    self.data = data
-    self.childs = []
+    self.value = value
+    self.children = []
+  
+  def __iter__(self):
+    return iter(self.children)
+  
+  def __repr__(self):
+    return "TreeNode({},{})".format(self.value,self.tag)
   
   def __str__(self):
-    s = "<TreeNode 'tag':'{}', 'data':{}>\n".format(self.tag, self.data)
-    for i,child in enumerate(self.childs):
-      s += " child" + str(i) + ": " + str(child)
-    return s
+    return "<TreeNode value:{} {}, tag:{}>".format(
+      self.value, type(self.value), self.tag)
     
 class BTreeNode(TreeNode):
-  def __init__(self, data=None, tag=None):
-    super().__init__(data, tag)
-    self.childs = [None, None]
+  """二叉树节点类"""
+  
+  def __init__(self, value=None, tag=None):
+    """初始化，子节点有最多有2个，left和right"""
+    super().__init__(value, tag)
+    self.children = [None, None]
     
   @property
   def left(self):
-    return self.childs[0]
+    """获取左子节点"""
+    return self.children[0]
   
   @left.setter
   def left(self, value):
-    if not isinstance(value, TreeNode):
-      raise TypeError("Expected a TreeNode obejct.")
-    self.childs[0] = value
+    """设置左子节点(必须是BTreeNode类型或None)"""
+    if value is not None and not isinstance(value, BTreeNode):
+      raise TypeError("{} is not a BTreeNode obejct.".format(value))
+    self.children[0] = value
     
   @property
   def right(self):
-    return self.childs[1]
+    """获取右子节点"""
+    return self.children[1]
   
   @right.setter
   def right(self, value):
-    if not isinstance(value, TreeNode):
-      raise TypeError("Expected a TreeNode obejct.")
-    self.childs[1] = value
+    """设置右子节点(必须是BTreeNode类型或None)"""
+    if value is not None and  not isinstance(value, BTreeNode):
+      raise TypeError("{} is not a BTreeNode obejct.".format(value))
+    self.children[1] = value
     
   def __str__(self):
-    s = "<BTreeNode 'tag':'{}', 'data':{}>\n".format(self.tag, self.data)
-    s += " left:\t" + str(self.left) + "\n"
-    s += " right:\t" + str(self.right) + "\n"
-    return s
+    return "<BTreeNode value:{} {}, tag:{}>".format(
+      self.value, type(self.value), self.tag)
     
+  def inorder_traversal(self):
+    """中序遍历节点子树"""
+    if self.left is not None:
+      yield from self.left.inorder_traversal()
+    yield self
+    if self.right is not None:
+      yield from self.right.inorder_traversal() 
+    
+  def preorder_traversal(self):
+    """前序遍历节点子树"""
+    yield self
+    if self.left is not None:
+      yield from self.left.preorder_traversal()
+    if self.right is not None:
+      yield from self.right.preorder_traversal()   
+  
+  def postorder_traversal(self):
+    """后序遍历节点子树"""
+    if self.left is not None:
+      yield from self.left.postorder_traversal()
+    if self.right is not None:
+      yield from self.right.postorder_traversal()       
+    yield self
+    
+  def level_order_traversal(self):
+    """层次遍历节点子树"""
+    if self is not None:
+      queue = [self]
+      while len(queue) > 0:
+        yield queue[0]
+        p = queue[0]
+        queue.remove(p)
+        for c in p.children:
+          if c is not None:
+            queue.append(c)
+               
+        
 class BTree(object):
-  def __init__(self,root):
+  """implemention of Binary Tree 
+  二叉树定义
+  """
+  
+  def __init__(self,root:BTreeNode = None):
     if not isinstance(root, BTreeNode):
       raise TypeError("Expected a BTreeNode as a root")
-    self.root = root
+    self._root = root
+
   
-  def __child_path(self, root, target, path_):
-    if root is None:
+  @staticmethod
+  def _create_root(arr:list, index:int=0) -> BTreeNode:
+    """create a complete binary tree using givin arr[index:]
+    Returns: root of the tree
+    """
+    if arr is None or index >= len(arr):
+      return None
+    root = BTreeNode(arr[index])
+    root.left = BTree._create_root(arr, 2*index+1)
+    root.right = BTree._create_root(arr, 2*(index+1))
+    return root
+     
+  @classmethod
+  def build_from_array(cls, arr):
+    """从一个数组构建一个二叉树"""
+    root = BTree._create_root(arr)
+    return cls(root)
+ 
+  @property
+  def root(self):
+    """返回树的根(节点)"""
+    return self._root
+  
+  def is_empty(self):
+    """判断树是否为空: True if tree is empty, False if not
+    """
+    return self._root is None
+  
+  def inorder_traversal(self):
+    """中序遍历树(根节点)"""
+    return self._root.inorder_traversal()
+  
+  def preorder_traversal(self):
+    """前序遍历节点子树"""
+    return self._root.preorder_traversal()
+  
+  def postorder_traversal(self):
+    """后序遍历节点子树"""
+    return self._root.postorder_traversal()
+    
+  def level_order_traversal(self):
+    """层次遍历节点子树"""
+    return self._root.level_order_traversal()
+     
+  @staticmethod
+  def __child_path(root, target, path_):
+    if root is None or target is None:
       return False
     path_.append(root)   
     if root is target:
       return True
     found = False
     if root.left is not None:
-      found = self.__child_path(root.left, target, path_)
-    if found is False and self.root.right is not None:
-      found = self.__child_path(root.right, target, path_)
+      found = BTree.__child_path(root.left, target, path_)
+    if found is False and root.right is not None:
+      found = BTree.__child_path(root.right, target, path_)
     if found is False:
       path_.pop()
     return found
@@ -70,39 +167,9 @@ class BTree(object):
     target：目标节点
     return：返回路径list，如果目标节点不在树中，则返回空list
     """
+    if target is None or self.root is None:
+      return []
     path_ = []
-    self.__child_path(self.root, target, path_)
+    BTree.__child_path(self.root, target, path_)
     return path_
   
-def test_child_path():
-  childs = [BTreeNode(i) for i in range(9)]
-  root = childs[3]
-  tree = BTree(root)
-  childs[3].left = childs[5]
-  childs[3].right = childs[1]
-  childs[5].left = childs[6]
-  childs[5].right = childs[2]
-  childs[2].left = childs[7]
-  childs[2].right = childs[4]
-  
-  childs[1].left = childs[0]
-  childs[1].right = childs[8]
-  
-  path_ = tree.child_path(childs[4])
-
-  for node in path_:
-    print(str(node.data) + " ",end=" ")
-  
-def test():
-  root = TreeNode(data=3, tag="root")
-  print(root)
-  
-  btroot = BTreeNode(data="19", tag="btroot")
-  btroot.left = root
-  btroot.right = TreeNode(data = 10, tag="right child")
-  print(btroot)
-  
-
-  
-if __name__ == "__main__":
-  test_child_path()
